@@ -5,3 +5,6 @@ base_dir = os.path.dirname(os.path.dirname(current_file_path))
 
 DATA_FOLDER = os.path.join(base_dir, "data")
 CKPT_FOLDER = os.path.join(base_dir, "checkpoints")
+
+os.makedirs(DATA_FOLDER, exist_ok=True)
+os.makedirs(CKPT_FOLDER, exist_ok=True)

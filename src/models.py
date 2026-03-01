@@ -5,7 +5,7 @@ import torch.nn as nn
 class CNN(nn.Module):
     def __init__(
         self,
-        N_points,
+        n_points,
         nb_conv_layers=3,
         filters_per_layer=[32, 64, 128],
         kernel_sizes=[20, 20, 20],
@@ -17,7 +17,7 @@ class CNN(nn.Module):
     ):
         super().__init__()
 
-        self.N_points = N_points
+        self.n_points = n_points
         self.nb_conv_layers = nb_conv_layers
         self.filters_per_layer = filters_per_layer
         self.kernel_sizes = kernel_sizes
@@ -26,8 +26,9 @@ class CNN(nn.Module):
         self.dense_units = dense_units
         self.dropout_rate_fc = dropout_rate_fc
         self.pool_size = pool_size
+        self.conv_dropout = nn.Dropout(self.dropout_rate_conv)
         self.conv_layers = nn.ModuleList()
-        self.dropout = nn.ModuleList()
+        self.fc_dropout = nn.ModuleList()
         self.pool_layers = nn.ModuleList()
         self.dense_layers = nn.ModuleList()
         self.relu = nn.SiLU()
@@ -45,7 +46,6 @@ class CNN(nn.Module):
             )
             self.conv_layers.append(conv_layer)
             self.pool_layers.append(nn.MaxPool1d(self.pool_size))
-            self.dropout.append(nn.Dropout(self.dropout_rate_conv))
             in_channels = self.filters_per_layer[i]
 
         self.flattened_size = self._get_flattened_size()
@@ -56,11 +56,11 @@ class CNN(nn.Module):
             else:
                 dense_layer = nn.Linear(self.dense_units[i - 1], self.dense_units[i])
             self.dense_layers.append(dense_layer)
-            self.dropout.append(nn.Dropout(self.dropout_rate_fc[i]))
+            self.fc_dropout.append(nn.Dropout(self.dropout_rate_fc[i]))
 
     def _get_flattened_size(self):
         with torch.no_grad():
-            x = torch.zeros(1, 1, self.N_points)
+            x = torch.zeros(1, 1, self.n_points)
             for i in range(self.nb_conv_layers):
                 x = self.conv_layers[i](x)
                 x = self.pool_layers[i](x)
@@ -72,15 +72,15 @@ class CNN(nn.Module):
             x = self.conv_layers[i](x)
             x = self.pool_layers[i](x)
             x = self.relu(x)
-            x = self.dropout[i](x)
+            x = self.conv_dropout(x)
 
         x = x.view(x.size(0), -1)
         # Dense layers
         for i in range(self.nb_dense_layers - 1):
             x = self.dense_layers[i](x)
             x = self.relu(x)
-            x = self.dropout[self.nb_conv_layers + i](x)
+            x = self.fc_dropout[i](x)
 
         x = self.dense_layers[-1](x)
 
-        return self.sigmoid(x)
+        return x
