@@ -23,7 +23,7 @@ def train(
     val_losses = []
     best_val_loss = float("inf")
 
-    scaler = torch.GradScaler(
+    scaler = torch.amp.GradScaler(
         enabled=(use_mixed_precision and autocast_dtype == torch.float16)
     )
 
@@ -34,9 +34,6 @@ def train(
 
         model.train()
         for data, label in train_loader:
-            if data.dim() == 2:
-                data = data.unsqueeze(1)
-
             if label.dim() == 1:
                 label = label.unsqueeze(1)
 
@@ -71,9 +68,6 @@ def train(
             val_loss = 0
             with torch.no_grad():
                 for data, label in val_loader:
-                    if data.dim() == 2:
-                        data = data.unsqueeze(1)
-
                     if label.dim() == 1:
                         label = label.unsqueeze(1)
 
@@ -113,4 +107,6 @@ def train(
     torch.save(
         model.state_dict(), os.path.join(CKPT_FOLDER, ckpt_prefix + "final_model.pt")
     )
+    torch.cuda.empty_cache()
+
     return train_losses, val_losses

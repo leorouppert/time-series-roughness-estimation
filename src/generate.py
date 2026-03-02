@@ -7,7 +7,7 @@ from tqdm import tqdm
 from src.constants import DATA_FOLDER
 
 
-def generate_Z(H, eta, N_paths, n_points, T):
+def generate_Z(H, eta, n_paths, n_points, T):
     time = np.linspace(0, 1, n_points)[1:]
     N_pts = n_points - 1
 
@@ -34,12 +34,34 @@ def generate_Z(H, eta, N_paths, n_points, T):
 
     L = np.linalg.cholesky(sigma)
 
-    gaussian = np.random.normal(loc=0.0, scale=1.0, size=(N_paths, N_pts))
-    Z = np.zeros((N_paths, n_points))
+    gaussian = np.random.normal(loc=0.0, scale=1.0, size=(n_paths, N_pts))
+    Z = np.zeros((n_paths, n_points))
 
     Z[:, 1:] = gaussian @ L.T
 
     return Z * np.power(T, H)
+
+
+def generate_OU(X0, mu, theta, sigma, n_paths, n_points, T):
+    t = np.linspace(0.0, T, n_points)[1:]
+
+    m = X0 * np.exp(-theta * t) + mu * (1 - np.exp(-theta * t))
+
+    S, T_grid = np.meshgrid(t, t)
+    cov_matrix = (sigma**2 / (2 * theta)) * (
+        np.exp(-theta * np.abs(T_grid - S)) - np.exp(-theta * (T_grid + S))
+    )
+
+    L = np.linalg.cholesky(cov_matrix)
+
+    Z = np.random.normal(0, 1, size=(n_paths, n_points - 1))
+
+    X = m[:, None].T + Z @ L.T
+
+    X0_array = np.full((n_paths, 1), X0)
+    X_full = np.hstack((X0_array, X))
+
+    return X_full
 
 
 def create_data(n_samples, n_points, T, n_H, eta=1):
