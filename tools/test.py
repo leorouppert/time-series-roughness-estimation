@@ -68,7 +68,7 @@ def draw_predictions(
     colors = plt.cm.viridis(np.linspace(0, 1, len(models)))
 
     plt.figure(figsize=(10, 10))
-    plt.plot(H, H, color="tomato", linestyle="--", linewidth=2, label="H réel")
+    plt.plot(H, H, color="tomato", linestyle="--", linewidth=2, label="Ground Truth H")
 
     for idx, model in enumerate(models):
         model.to(device=device)
